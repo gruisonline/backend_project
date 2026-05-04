@@ -44,6 +44,7 @@ const registerUser = asyncHandler( async (req, res) => {
   // const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
   
   let coverImageLocalPath;
+
   if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
       coverImageLocalPath = req.files.coverImage[0].path
   }
@@ -68,17 +69,17 @@ const registerUser = asyncHandler( async (req, res) => {
     username: username.toLowerCase()
   })
 
-  const createUser = await User.findById(user._id)
+  const createdUser = await User.findById(user._id)
     .select(
       "-password -refreshToken"
     )
 
-  if(!createUser) {
+  if(!createdUser) {
     throw new ApiError(500, "Something went wrong while registering the user")
   }
 
   return res.status(201).json(
-    new ApiResponse(200, createUser, "User registered Successfully")
+    new ApiResponse(200, createdUser, "User registered Successfully")
   );
 
 })
@@ -250,7 +251,8 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     req.user._id,
     {
       $set: {
-        fullname, email
+        fullname, 
+        email
       }
     },
     {
@@ -422,13 +424,13 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                     usename: 1,
                     avatar: 1
                   }
-                }, 
-                {
-                  $addFields: {
-                    $first: "$owner"
-                  }
                 }
               ]
+            }
+          },
+          {
+            $addFields: {
+              $first: "$owner"
             }
           }
         ]

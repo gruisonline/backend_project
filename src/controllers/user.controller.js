@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import { response } from "express";
+import { v2 as cloudinary } from "cloudinary";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -299,9 +300,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Avatar file is required")
   }
 
+  if(req.user?.avatar?.public_id) {
+    await cloudinary.uploader.destroy(req.user.avatar.public_id)
+  }
+
   const avatar = await uploadOnCloudinary(avatarLocalPath)
 
-  if(!avatar.url) {
+  if(!avatar || !avatar.url) {
     throw new ApiError(400, "Error while uploading avatar")
   }
 
@@ -315,6 +320,10 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     {new: true}
   ).select("-password -refreshToken")
 
+  if (!user) {
+    throw new ApiError(404, "User not found")
+  }
+
   return res.status(200).json(
     new ApiResponse(200, user, "Avatar updated successfully")
   )
@@ -327,9 +336,13 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Cover Image file is required")
   }
 
+  if(req.user?.coverImage?.public_id) {
+    await cloudinary.uploader.destroy(req.user.coverImage.public_id)
+  }
+
   const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
-  if(!coverImage.url) {
+  if(!coverImage || !coverImage.url) {
     throw new ApiError(400, "Error while uploading Cover Image")
   }
 

@@ -12,12 +12,12 @@ dotenv.config({
 connectDB()
 .then(() => {
   app.on("error", (error) => {
-    console.log("ERROR - :", error);
-    throw error
+    console.log("Server error - :", error);
+    process.exit(1);
   })
   
   app.listen(process.env.PORT || 8000, () => {
-    console.log(`Server is running at port : ${process.env.PORT}`);
+    console.log(`Server is running at port : ${process.env.PORT || 8000}`);
   })
 
 }).catch((err) => {

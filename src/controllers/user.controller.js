@@ -9,6 +9,11 @@ import { response } from "express";
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId)
+
+    if (!user) {
+      throw new ApiError(404, "User not found")
+    }
+
     const accessToken = user.generateAccessToken()
     const refreshToken = user.generateRefreshToken()
     
@@ -18,7 +23,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
     return { accessToken, refreshToken }
 
   } catch (error) {
-    throw new ApiError(500, "Something went wrong while generating  refresh and access token")
+    throw new ApiError(500, "Failed to generate access and refresh tokens")
   }
 }
 
@@ -29,11 +34,11 @@ const registerUser = asyncHandler( async (req, res) => {
   if(
     [fullname, email, username, password].some((field) => field?.trim() === "")
   ) {
-    throw new ApiError(400, "All fields sre required")
+    throw new ApiError(400, "All fields are required")
   }
 
   const existedUser = await User.findOne({
-    $or: [{ username }, { password }]
+    $or: [{ username }, { email }]
   })
 
   if(existedUser) {
@@ -54,7 +59,9 @@ const registerUser = asyncHandler( async (req, res) => {
   }
 
   const avatar = await uploadOnCloudinary(avatarLocalPath);
-  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  const coverImage = coverImageLocalPath
+  ? await uploadOnCloudinary(coverImageLocalPath)
+  : null;
 
   if(!avatar) {
     throw new ApiError(400, "Avatar file is required");
@@ -90,7 +97,7 @@ const loginUser = asyncHandler( async (req, res) => {
   // if (!( username || eamil )) {....} - want one of two
 
   if (!username && !email) {
-    throw new ApiError(400, "username or eamil is required")
+    throw new ApiError(400, "username or email is required")
   }
 
   const user = await User.findOne({
@@ -137,7 +144,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     req.user._id,
     {
       $set: {
-        refreshToken: undefined
+        refreshToken: null
       }
     },
     {
@@ -220,9 +227,12 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(req.user?._id)
-  const isPasswordCurrect = await user.isPasswordCorrect(oldPassword)
 
-  if(!isPasswordCurrect) {
+  if (!user) throw new ApiError(404, "User not found")
+
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+  if(!isPasswordCorrect) {
     throw new ApiError(400, "Invalid old password")
   }
 
@@ -243,8 +253,19 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 const updateAccountDetails = asyncHandler(async (req, res) => {
   const { fullname, email } = req.body
 
-  if(!fullname || !email) {
+  if(!fullname?.trim() || !email?.trim()) {
     throw new ApiError(400, "All fields are required")
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    throw new ApiError(400, "Invalid email format")
+  }
+
+  const existingUser = await User.findOne({ email })
+
+  if (existingUser && existingUser._id.toString() !== req.user._id.toString()) {
+    throw new ApiError(400, "Email already in use")
   }
 
   const user = await User.findByIdAndUpdate(
@@ -256,7 +277,8 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
       }
     },
     {
-      new: true
+      new: true,
+      runValidators: true
     }
   ).select("-password -refreshToken")
 

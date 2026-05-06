@@ -456,7 +456,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                 {
                   $project: {
                     fullname: 1,
-                    usename: 1,
+                    username: 1,
                     avatar: 1
                   }
                 }
@@ -465,7 +465,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
           },
           {
             $addFields: {
-              $first: "$owner"
+              owner: { $first: "$owner" }
             }
           }
         ]
@@ -474,6 +474,10 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   ])
 
   console.log(user)
+
+  if (!user.length) {
+    throw new ApiError(404, "User not found")
+  }
 
   return res.status(200).json(
     new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully")

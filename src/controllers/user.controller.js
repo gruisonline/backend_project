@@ -4,8 +4,9 @@ import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
-import { response } from "express";
 import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";
+
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -88,7 +89,7 @@ const registerUser = asyncHandler( async (req, res) => {
 
   return res.status(201).json(
     new ApiResponse(200, createdUser, "User registered Successfully")
-  );
+  )
 
 })
 
@@ -168,7 +169,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
   if(!incomingRefreshToken) {
     throw new ApiError(401, "Unauthorized request")
@@ -204,7 +205,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         new ApiResponse(
           200, 
           {
-            accessToken : newAccessToken,
+            accessToken: newAccessToken,
             refreshToken: newRefreshToken
           },
           "Access token refreshed"
@@ -432,7 +433,7 @@ const getUserChannalProfile = asyncHandler(async (req, res) => {
   )
 })
 
-const getWatchHistory = asyncHandler(async (req, res) => { 
+const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
@@ -465,15 +466,15 @@ const getWatchHistory = asyncHandler(async (req, res) => {
           },
           {
             $addFields: {
-              owner: { $first: "$owner" }
+              owner: { 
+                $first: "$owner" 
+              }
             }
           }
         ]
       }
     }
   ])
-
-  console.log(user)
 
   if (!user.length) {
     throw new ApiError(404, "User not found")

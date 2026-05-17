@@ -4,9 +4,71 @@ import { User } from '../models/user.models.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
+import mongoose from 'mongoose';
 
 const getAllVideos = asyncHandler(async (req, res) => {
+  const { 
+    page = 1, 
+    limit = 10, 
+    query, 
+    sortBy, 
+    sortType, 
+    userId 
+  } = req.query
 
+
+  const pegNumber = parseInt(page)
+  const limitNumber = parseInt(limit)
+  const skip = (pegNumber - 1) * limitNumber
+
+  const filter = {}
+
+  if(query) {
+    filter.$or = [
+      { 
+        title: { 
+          $regex: query, 
+          $options: "i" 
+        } 
+      },
+      { 
+        description: { 
+          $regex: query, 
+          $options: "i" 
+        } 
+      }
+    ]
+  }
+
+  if(userId) {
+    filter.owner = new mongoose.Types.ObjectId(userId)
+  }
+
+  const sortOptions = {}
+
+  if(sortBy) {
+    const sortOrder = sortType === "desc" ? -1 : 1
+    sortOptions[sortBy] = sortOrder
+  } else {
+    sortOptions.createdAt = -1
+  }
+
+  const videos = await Video.find(filter)
+    .sort(sortOptions)
+    .skip(skip)
+    .limit(limitNumber)
+    .populate("owner", "username avatar fullname")  
+
+  const totalVideos = await Video.countDocuments(filter)
+  const totalPages = Math.ceil(totalVideos / limitNumber) 
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      videos,
+      totalPages,
+      currentPage: pegNumber
+    })
+  )
 })
 
 const publishAVideo = asyncHandler( async (req, res) => {
@@ -53,8 +115,14 @@ const publishAVideo = asyncHandler( async (req, res) => {
     throw new ApiError(500, "Something went wrong while uploading the video!")
   }
 
+  const createdVideo = await Video.findById(video._id);
+
+  if (!createdVideo) {
+    throw new ApiError(500, "Something went wrong while publishing video");
+  }
+
   return res.status(201).json(
-    new ApiResponse(200, video, "Video uploaded Successfully")
+    new ApiResponse(200, createdVideo, "Video uploaded Successfully")
   )
 
 })

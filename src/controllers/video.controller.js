@@ -4,6 +4,7 @@ import { User } from '../models/user.models.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
+import { v2 as cloudinary } from "cloudinary";
 import mongoose from 'mongoose';
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -105,8 +106,14 @@ const publishAVideo = asyncHandler( async (req, res) => {
   const video = await Video.create({
     title,
     description,
-    videoFile: videoFile.secure_url,
-    thumbnail: thumbnail?.secure_url || "",
+    videoFile: {
+      url: videoFile.secure_url,
+      public_id: videoFile?.public_id,
+    },
+    thumbnail: {
+      url: thumbnail?.secure_url || "",
+      public_id: thumbnail?.public_id || "",
+    },
     duration: videoFile.duration || "",
     owner: req.user._id
   })
@@ -145,8 +152,73 @@ const getVideoById = asyncHandler(async (req, res) => {
   )
 })
 
+const updateVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  const { title, description } = req.body;
+
+  const thumbnailLocalPath = req.file?.path;
+
+  const existingVideo = await Video.findById(videoId);
+
+  if (!videoId?.trim()) {
+    throw new ApiError(400, "Video not found!");
+  }
+
+  const updateData = {};
+
+  if(title?.trim()) {
+    updateData.title = title
+  }
+
+  if(description?.trim()) {
+    updateData.description = description
+  }
+
+  if(thumbnailLocalPath) {
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+    if(!thumbnail?.url) {
+      throw new ApiError(500, "Thumbnail upload failed");
+    }
+
+    updateData.thumbnail = {
+      url: thumbnail?.url || "",
+      public_id: thumbnail?.public_id || "",
+    };
+
+    if (existingVideo.thumbnail?.public_id) {
+      await cloudinary.uploader.destroy(
+        existingVideo.thumbnail.public_id
+      );
+    }
+  }
+
+  const video = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: updateData,
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!video) {
+    throw new ApiError(
+      404,
+      "Video not found"
+    );
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, video, "Video updated successfully")
+  );
+});
+
 export {
   getAllVideos,
   publishAVideo,
-  getVideoById
+  getVideoById,
+  updateVideo
 }

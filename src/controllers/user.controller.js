@@ -4,8 +4,8 @@ import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
-import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
+import { deleteFromCloudinary } from "../utils/deleteFromCloudinary.js";
 
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -302,7 +302,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   }
 
   if(req.user?.avatar?.public_id) {
-    await cloudinary.uploader.destroy(req.user.avatar.public_id)
+    await deleteFromCloudinary(req.user.avatar.public_id)
   }
 
   const avatar = await uploadOnCloudinary(avatarLocalPath)
@@ -338,7 +338,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
   }
 
   if(req.user?.coverImage?.public_id) {
-    await cloudinary.uploader.destroy(req.user.coverImage.public_id)
+    await deleteFromCloudinary(req.user.coverImage.public_id)
   }
 
   const coverImage = await uploadOnCloudinary(coverImageLocalPath)

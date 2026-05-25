@@ -68,7 +68,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
       videos,
       totalPages,
       currentPage: pegNumber
-    })
+    },
+    "All video fetched successfully!"
+  )
   )
 })
 

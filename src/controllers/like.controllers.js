@@ -13,7 +13,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
   const totalLikes = await Like.countDocuments({
     video: videoId
-  });
+  })
 
   const existingLike = await Like.findOne({
     video: videoId,
@@ -24,7 +24,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
       await Like.deleteOne(existingLike._id);
 
       return res.status(200).json(
-          new ApiResponse(200, { totalLikes}, "Video unliked successfully")
+          new ApiResponse(200, { totalLikes }, "Video unliked successfully")
       );
   }
 
@@ -36,6 +36,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, {totalLikes}, "Video liked successfully!")
   )
+  
+})
+
+const toggleCommentLike = asyncHandler(async (req, res) => {
   
 })
 

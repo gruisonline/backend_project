@@ -18,7 +18,7 @@ const addComment = asyncHandler(async( req, res) => {
 
   const comment = await Comment.create({
     content,
-    videoId: videoId,
+    video: videoId,
     owner: req.user?._id
   })
 
@@ -52,20 +52,22 @@ const getVideoComments = asyncHandler(async (req, res) => {
     [sortBy]: sortType === "desc" ? -1 : 1
   };
 
-  const comments = await Comment.find({video: videoId})
+  const comments = await Comment.find({ video: videoId})
     .sort(sortOptions)
     .skip(skip)
     .limit(limitNumber)
     .populate("owner", "username avatar fullname")
+    .lean();
 
-  const totalComments = await Comment.countDocuments({video: videoId})
+  const totalComments = await Comment.countDocuments({ video: videoId })
 
   return res.status(200).json(
     new ApiResponse(
       200, 
       {
         comments,
-        hasMore: skip + comments.lenght < totalComments
+        totalComments,
+        hasMore: skip + comments.length < totalComments
       }, 
       "All comments fetched successfully!")
   )
@@ -101,7 +103,7 @@ const updateComment = asyncHandler(async (req, res) => {
   }
 
   return res.status(200).json(
-    new ApiResponse(200, video, "Comment updated successfully!")
+    new ApiResponse(200, updateComment, "Comment updated successfully!")
   )
 })
 
@@ -112,13 +114,13 @@ const deleteComment = asyncHandler(async(req, res) => {
     throw new ApiError(400, "Comment not found!")
   }
 
-  const comment = await Comment.findOneAndDelete(commentId)
+  const comment = await Comment.findByIdAndDelete(commentId)
 
   if(!comment) {
     throw new ApiResponse(404, "Comment not found!")
   }
 
-  return res.status().json(
+  return res.status(200).json(
     new ApiResponse(200, {}, "Comment deleted successfully!")
   )
 

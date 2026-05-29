@@ -86,8 +86,6 @@ const toggleTweetlike = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid tweet ID!")
   }
 
-  const tweetLikes = await Like.countDocuments({tweet: tweetId})
-
   const existingLike = await Like.findOne({
     tweet: tweetId,
     likedBy: req.user?._id
@@ -95,6 +93,8 @@ const toggleTweetlike = asyncHandler(async (req, res) => {
 
   if(existingLike) {
     await Like.deleteOne(existingLike._id)
+
+    const tweetLikes = await Like.countDocuments({tweet: tweetId}) 
 
     return res.status(200).json(
       new ApiResponse(200, tweetLikes, "Tweet unliked successfully!")
@@ -109,6 +109,8 @@ const toggleTweetlike = asyncHandler(async (req, res) => {
   if(!likedTweet) {
     throw new ApiError(404, "Something went wrong while liking tweet!")
   }
+
+  const tweetLikes = await Like.countDocuments({tweet: tweetId}) 
 
   return res.status(200).json(
     new ApiResponse(200, tweetLikes, "Tweet liked successfully!")

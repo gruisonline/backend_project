@@ -9,6 +9,10 @@ const playlistSchema = new Schema(
     description: {
       type: String,
     },
+    isPublished: {
+      type: Boolean,
+      default: true
+    },
     videos: [
       {
         type: Schema.Types.ObjectId,
